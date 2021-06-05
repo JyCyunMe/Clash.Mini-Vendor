@@ -494,7 +494,6 @@ func (t *winTray) convertToSubMenuEx(menuItemId uint32, enableSubMenu bool) (win
 
 	var mi menuItemInfo
 	if enableSubMenu {
-		log.Error("a")
 		mi = menuItemInfo{
 			Mask: MIIM_SUBMENU,
 			SubMenu: menu,
@@ -516,7 +515,6 @@ func (t *winTray) convertToSubMenuEx(menuItemId uint32, enableSubMenu bool) (win
 		t.menus[menuItemId] = menu
 		t.muMenus.Unlock()
 	} else {
-		log.Error("b")
 		mi = menuItemInfo{
 			Mask:     MIIM_FTYPE | MIIM_STRING | MIIM_ID | MIIM_STATE,
 			ID:       uint32(menuItemId),
