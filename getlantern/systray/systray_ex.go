@@ -2,19 +2,35 @@ package systray
 
 import (
 	"container/list"
+	"fmt"
 	"os"
 	"runtime"
+	"strings"
+
+	"github.com/JyCyunMe/go-i18n/i18n"
 )
 
 type MenuItemEx struct {
-	Item     	*MenuItem
-	Parent   	*MenuItemEx
-	Children    *list.List
-	Callback 	func(menuItemEx *MenuItemEx)
+	Item       *MenuItem
+	Parent     *MenuItemEx
+	Children   *list.List
+	Callback   func(menuItemEx *MenuItemEx)
+	I18nConfig *I18nConfig
+}
+
+type I18nConfig struct {
+	TitleID           string
+	TooltipID         string
+	TitleFormat       string
+	TooltipFormat     string
+	TitleData         *i18n.Data
+	TooltipData       *i18n.Data
+	TitleNotAsTooltip bool
+	Callback          func(i18nConfig *I18nConfig) string
 }
 
 var (
-	MenuList 	[]*MenuItemEx
+	MenuList []*MenuItemEx
 )
 
 // RunEx SystrayEx入口 须在init()调用
@@ -52,7 +68,7 @@ func (mie *MenuItemEx) AddMenuItemExBind(title string, tooltip string, f func(me
 	return
 }
 
-// AddMenuItemExBind 添加增强版勾选框菜单项（同级）
+// AddMenuItemCheckboxEx 添加增强版勾选框菜单项（同级）
 func (mie *MenuItemEx) AddMenuItemCheckboxEx(title string, tooltip string, isChecked bool, f func(menuItemEx *MenuItemEx)) (menuItemEx *MenuItemEx) {
 	menuItemEx = getSubMenuItemCheckboxEx(mie.Parent.Item, title, tooltip, isChecked, f)
 	menuItemEx.Parent = mie.Parent
@@ -76,7 +92,14 @@ func AddMainMenuItemEx(title string, tooltip string, f func(menuItemEx *MenuItem
 	return
 }
 
-// AddMainMenuItemEx 添加增强版子菜单项
+// AddMainMenuItemExBind 添加增强版主菜单项并绑定到引用对象
+func AddMainMenuItemExBind(title string, tooltip string, f func(menuItemEx *MenuItemEx), v *MenuItemEx) (menuItemEx *MenuItemEx) {
+	menuItemEx = AddMainMenuItemEx(title, tooltip, f)
+	*v = *menuItemEx
+	return
+}
+
+// AddSubMenuItemEx 添加增强版子菜单项
 func (mie *MenuItemEx) AddSubMenuItemEx(title string, tooltip string, f func(menuItemEx *MenuItemEx)) (menuItemEx *MenuItemEx) {
 	//subMenuItemEx := getMenuItemEx(title, tooltip, f)
 	//mie.Children = append(mie.Children, subMenuItemEx)
@@ -114,6 +137,118 @@ func (mie *MenuItemEx) AddSubMenuItemCheckboxExBind(title string, tooltip string
 	return
 }
 
+///
+
+//func getI18nFormatted(i18nConfig *I18nConfig) (title string, tooltip string) {
+func getI18nFormatted(i18nConfig *I18nConfig) (title string, tooltip string) {
+	//title = i18n.T(i18nConfig.TitleID)
+	title = i18n.TData("", i18nConfig.TitleID, i18nConfig.TitleData)
+	if len(i18nConfig.TitleFormat) > 0 {
+		if strings.Contains(i18nConfig.TitleFormat, "%s") {
+			title = fmt.Sprintf(i18nConfig.TitleFormat, title)
+		} else {
+			title += i18nConfig.TitleFormat
+		}
+	}
+	if len(i18nConfig.TooltipID) > 0 {
+		//tooltip = i18n.T(i18nConfig.TooltipID)
+		tooltip = i18n.TData("", i18nConfig.TooltipID, i18nConfig.TooltipData)
+		if len(i18nConfig.TooltipFormat) > 0 {
+			if strings.Contains(i18nConfig.TooltipFormat, "%s") {
+				tooltip = fmt.Sprintf(i18nConfig.TooltipFormat, tooltip)
+			} else {
+				tooltip += i18nConfig.TooltipFormat
+			}
+		}
+	} else if !i18nConfig.TitleNotAsTooltip {
+		tooltip = title
+	}
+	return
+}
+
+// SwitchLanguage 切换语言
+func (mie *MenuItemEx) SwitchLanguage() {
+	if mie.I18nConfig != nil {
+		title, tooltip := getI18nFormatted(mie.I18nConfig)
+		mie.SetTitle(title)
+		mie.SetTooltip(tooltip)
+	}
+}
+
+// SwitchLanguageWithChildren 切换语言
+func (mie *MenuItemEx) SwitchLanguageWithChildren() {
+	mie.SwitchLanguage()
+	for e := mie.Children.Front(); e != nil; e = e.Next() {
+		child := e.Value.(*MenuItemEx)
+		child.SwitchLanguageWithChildren()
+	}
+}
+
+func (mie *MenuItemEx) setI18nConfig(i18nConfig *I18nConfig) (menuItemEx *MenuItemEx) {
+	mie.I18nConfig = i18nConfig
+	return mie
+}
+
+// AddMenuItemExI18n 添加增强版菜单项（同级）
+func (mie *MenuItemEx) AddMenuItemExI18n(i18nConfig *I18nConfig, f func(menuItem *MenuItemEx)) (menuItemEx *MenuItemEx) {
+	title, tooltip := getI18nFormatted(i18nConfig)
+	return mie.AddMenuItemEx(title, tooltip, f).setI18nConfig(i18nConfig)
+}
+
+// AddMenuItemExBindI18n 添加增强版菜单项（同级）并绑定到引用对象
+func (mie *MenuItemEx) AddMenuItemExBindI18n(i18nConfig *I18nConfig, f func(menuItem *MenuItemEx), v *MenuItemEx) (menuItemEx *MenuItemEx) {
+	title, tooltip := getI18nFormatted(i18nConfig)
+	return mie.AddMenuItemExBind(title, tooltip, f, v).setI18nConfig(i18nConfig)
+}
+
+// AddMenuItemCheckboxExI18n 添加增强版勾选框菜单项（同级）
+func (mie *MenuItemEx) AddMenuItemCheckboxExI18n(i18nConfig *I18nConfig, isChecked bool, f func(menuItemEx *MenuItemEx)) (menuItemEx *MenuItemEx) {
+	title, tooltip := getI18nFormatted(i18nConfig)
+	return mie.AddMenuItemCheckboxEx(title, tooltip, isChecked, f).setI18nConfig(i18nConfig)
+}
+
+// AddMenuItemCheckboxExBindI18n 添加增强版菜单项并绑定到引用对象
+func (mie *MenuItemEx) AddMenuItemCheckboxExBindI18n(i18nConfig *I18nConfig, isChecked bool, f func(menuItemEx *MenuItemEx), v *MenuItemEx) (menuItemEx *MenuItemEx) {
+	title, tooltip := getI18nFormatted(i18nConfig)
+	return mie.AddMenuItemCheckboxExBind(title, tooltip, isChecked, f, v).setI18nConfig(i18nConfig)
+}
+
+// AddMainMenuItemExI18n 添加增强版主菜单项
+func AddMainMenuItemExI18n(i18nConfig *I18nConfig, f func(menuItemEx *MenuItemEx)) (menuItemEx *MenuItemEx) {
+	title, tooltip := getI18nFormatted(i18nConfig)
+	return AddMainMenuItemEx(title, tooltip, f).setI18nConfig(i18nConfig)
+}
+
+// AddMainMenuItemExBindI18n 添加增强版主菜单项
+func AddMainMenuItemExBindI18n(i18nConfig *I18nConfig, f func(menuItemEx *MenuItemEx), v *MenuItemEx) (menuItemEx *MenuItemEx) {
+	*v = *AddMainMenuItemExI18n(i18nConfig, f)
+	return v.setI18nConfig(i18nConfig)
+}
+
+// AddSubMenuItemExI18n 添加增强版子菜单项
+func (mie *MenuItemEx) AddSubMenuItemExI18n(i18nConfig *I18nConfig, f func(menuItemEx *MenuItemEx)) (menuItemEx *MenuItemEx) {
+	title, tooltip := getI18nFormatted(i18nConfig)
+	return mie.AddSubMenuItemEx(title, tooltip, f).setI18nConfig(i18nConfig)
+}
+
+// AddSubMenuItemExBindI18n 添加增强版子菜单项并绑定到引用对象
+func (mie *MenuItemEx) AddSubMenuItemExBindI18n(i18nConfig *I18nConfig, f func(menuItemEx *MenuItemEx), v *MenuItemEx) (menuItemEx *MenuItemEx) {
+	title, tooltip := getI18nFormatted(i18nConfig)
+	return mie.AddSubMenuItemExBind(title, tooltip, f, v).setI18nConfig(i18nConfig)
+}
+
+// AddSubMenuItemCheckboxExI18n 添加增强版勾选框子菜单项
+func (mie *MenuItemEx) AddSubMenuItemCheckboxExI18n(i18nConfig *I18nConfig, isChecked bool, f func(menuItemEx *MenuItemEx)) (menuItemEx *MenuItemEx) {
+	title, tooltip := getI18nFormatted(i18nConfig)
+	return mie.AddSubMenuItemCheckboxEx(title, tooltip, isChecked, f).setI18nConfig(i18nConfig)
+}
+
+// AddSubMenuItemCheckboxExBindI18n 添加增强版勾选框子菜单项并绑定到引用对象
+func (mie *MenuItemEx) AddSubMenuItemCheckboxExBindI18n(i18nConfig *I18nConfig, isChecked bool, f func(menuItemEx *MenuItemEx), v *MenuItemEx) (menuItemEx *MenuItemEx) {
+	title, tooltip := getI18nFormatted(i18nConfig)
+	return mie.AddSubMenuItemCheckboxExBind(title, tooltip, isChecked, f, v).setI18nConfig(i18nConfig)
+}
+
 //// AddSeparator adds a separator bar to the menu
 //func AddSeparator(mie *MenuItemEx) *MenuItemEx {
 //	menuItemEx := &MenuItemEx{
@@ -143,8 +278,8 @@ func SwitchCheckboxGroup(newValue *MenuItemEx, checked bool, values []*MenuItemE
 }
 
 // SwitchCheckboxBrother 切换增强版勾选框菜单项组 设置指定项勾选与否，其他兄弟项相反
-func SwitchCheckboxBrother(newValue *MenuItemEx, checked bool) {
-	SwitchCheckboxGroupByList(newValue, checked, newValue.Parent.Children)
+func (mie *MenuItemEx) SwitchCheckboxBrother(checked bool) {
+	SwitchCheckboxGroupByList(mie, checked, mie.Parent.Children)
 }
 
 // SwitchCheckboxGroupByList 切换增强版勾选框菜单项组 设置指定项勾选与否，组内其他项相反
@@ -203,7 +338,7 @@ func (menuItemEx *MenuItemEx) SetTitle(title string) *MenuItemEx {
 
 // SetTooltip set the tooltip to show when mouse hover
 func (menuItemEx *MenuItemEx) SetTooltip(tooltip string) *MenuItemEx {
-	menuItemEx.Item.SetTitle(tooltip)
+	menuItemEx.Item.SetTooltip(tooltip)
 	return menuItemEx
 }
 
@@ -287,8 +422,8 @@ func (menuItemEx *MenuItemEx) ClearChildren() *MenuItemEx {
 func getMenuItemEx(title string, tooltip string, f func(menuItemEx *MenuItemEx)) (menuItemEx *MenuItemEx) {
 	menuItem := AddMenuItem(title, tooltip)
 	menuItemEx = &MenuItemEx{
-		Item:		menuItem,
-		Children: 	list.New(),
+		Item:     menuItem,
+		Children: list.New(),
 	}
 	menuItem.setExObj(menuItemEx)
 	menuItemEx.Callback = func(e *MenuItemEx) {
@@ -301,7 +436,7 @@ func getSubMenuItemEx(menuItem *MenuItem, title string, tooltip string, f func(m
 	subMenuItem := menuItem.AddSubMenuItem(title, tooltip)
 	subMenuItemEx = &MenuItemEx{
 		Item:     subMenuItem,
-		Children: 	list.New(),
+		Children: list.New(),
 	}
 	subMenuItem.setExObj(subMenuItemEx)
 	subMenuItemEx.Callback = func(e *MenuItemEx) {
@@ -314,7 +449,7 @@ func getSubMenuItemCheckboxEx(menuItem *MenuItem, title string, tooltip string, 
 	subMenuItem := menuItem.AddSubMenuItemCheckbox(title, tooltip, isChecked)
 	subMenuItemEx = &MenuItemEx{
 		Item:     subMenuItem,
-		Children: 	list.New(),
+		Children: list.New(),
 	}
 	subMenuItem.setExObj(subMenuItemEx)
 	subMenuItemEx.Callback = func(e *MenuItemEx) {
