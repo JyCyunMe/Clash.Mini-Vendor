@@ -14,11 +14,13 @@ var (
 	logCh  = make(chan interface{})
 	source = observable.NewObservable(logCh)
 	level  = INFO
+	Logger *log.Logger
 )
 
 func init() {
 	log.SetOutput(os.Stdout)
 	log.SetLevel(log.DebugLevel)
+	Logger = log.StandardLogger()
 	//InitExLog(log.DebugLevel, false, "./log.txt")
 }
 
