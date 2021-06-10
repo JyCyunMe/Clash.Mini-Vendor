@@ -16,6 +16,7 @@ type MenuItemEx struct {
 	Children   *list.List
 	Callback   func(menuItemEx *MenuItemEx)
 	I18nConfig *I18nConfig
+	ExtraData  interface{}
 }
 
 type I18nConfig struct {
@@ -306,107 +307,122 @@ func SwitchCheckboxGroupByList(newValue *MenuItemEx, checked bool, values *list.
 }
 
 // UncheckFull uncheck with children
-func (menuItemEx *MenuItemEx) UncheckFull() *MenuItemEx {
-	for e := menuItemEx.Children.Front(); e != nil; e = e.Next() {
+func (mie *MenuItemEx) UncheckFull() *MenuItemEx {
+	for e := mie.Children.Front(); e != nil; e = e.Next() {
 		e.Value.(*MenuItemEx).UncheckFull()
 	}
-	menuItemEx.Uncheck()
-	return menuItemEx
+	mie.Uncheck()
+	return mie
 }
 
 // SetIcon sets the icon of a menu item. Only works on macOS and Windows.
 // iconBytes should be the content of .ico/.jpg/.png
-func (menuItemEx *MenuItemEx) SetIcon(iconBytes []byte) *MenuItemEx {
-	menuItemEx.Item.SetIcon(iconBytes)
-	return menuItemEx
+func (mie *MenuItemEx) SetIcon(iconBytes []byte) *MenuItemEx {
+	mie.Item.SetIcon(iconBytes)
+	return mie
 }
 
 // SetTemplateIcon sets the icon of a menu item as a template icon (on macOS). On Windows, it
 // falls back to the regular icon bytes and on Linux it does nothing.
 // templateIconBytes and regularIconBytes should be the content of .ico for windows and
 // .ico/.jpg/.png for other platforms.
-func (menuItemEx *MenuItemEx) SetTemplateIcon(templateIconBytes []byte, regularIconBytes []byte) *MenuItemEx {
-	menuItemEx.Item.SetTemplateIcon(templateIconBytes, regularIconBytes)
-	return menuItemEx
+func (mie *MenuItemEx) SetTemplateIcon(templateIconBytes []byte, regularIconBytes []byte) *MenuItemEx {
+	mie.Item.SetTemplateIcon(templateIconBytes, regularIconBytes)
+	return mie
 }
 
 // SetTitle set the text to display on a menu item
-func (menuItemEx *MenuItemEx) SetTitle(title string) *MenuItemEx {
-	menuItemEx.Item.SetTitle(title)
-	return menuItemEx
+func (mie *MenuItemEx) SetTitle(title string) *MenuItemEx {
+	mie.Item.SetTitle(title)
+	return mie
 }
 
 // SetTooltip set the tooltip to show when mouse hover
-func (menuItemEx *MenuItemEx) SetTooltip(tooltip string) *MenuItemEx {
-	menuItemEx.Item.SetTooltip(tooltip)
-	return menuItemEx
+func (mie *MenuItemEx) SetTooltip(tooltip string) *MenuItemEx {
+	mie.Item.SetTooltip(tooltip)
+	return mie
 }
 
 // Disabled checks if the menu item is disabled
-func (menuItemEx *MenuItemEx) Disabled() bool {
-	return menuItemEx.Item.Disabled()
+func (mie *MenuItemEx) Disabled() bool {
+	return mie.Item.Disabled()
 }
 
 // Enable a menu item regardless if it's previously enabled or not
-func (menuItemEx *MenuItemEx) Enable() *MenuItemEx {
-	menuItemEx.Item.Enable()
-	return menuItemEx
+func (mie *MenuItemEx) Enable() *MenuItemEx {
+	mie.Item.Enable()
+	return mie
 }
 
 // Disable a menu item regardless if it's previously disabled or not
-func (menuItemEx *MenuItemEx) Disable() *MenuItemEx {
-	menuItemEx.Item.Disable()
-	return menuItemEx
+func (mie *MenuItemEx) Disable() *MenuItemEx {
+	mie.Item.Disable()
+	return mie
 }
 
 // Hide hides a menu item
-func (menuItemEx *MenuItemEx) Hide() *MenuItemEx {
-	menuItemEx.Item.Hide()
-	return menuItemEx
+func (mie *MenuItemEx) Hide() *MenuItemEx {
+	mie.Item.Hide()
+	return mie
 }
 
 // Show shows a previously hidden menu item
-func (menuItemEx *MenuItemEx) Show() *MenuItemEx {
-	menuItemEx.Item.Show()
-	return menuItemEx
+func (mie *MenuItemEx) Show() *MenuItemEx {
+	mie.Item.Show()
+	return mie
 }
 
 // Checked returns if the menu item has a check mark
-func (menuItemEx *MenuItemEx) Checked() bool {
-	return menuItemEx.Item.Checked()
+func (mie *MenuItemEx) Checked() bool {
+	return mie.Item.Checked()
 }
 
 // Check a menu item regardless if it's previously checked or not
-func (menuItemEx *MenuItemEx) Check() *MenuItemEx {
-	menuItemEx.Item.Check()
-	return menuItemEx
+func (mie *MenuItemEx) Check() *MenuItemEx {
+	mie.Item.Check()
+	return mie
 }
 
 // Uncheck a menu item regardless if it's previously unchecked or not
-func (menuItemEx *MenuItemEx) Uncheck() *MenuItemEx {
-	menuItemEx.Item.Uncheck()
-	return menuItemEx
+func (mie *MenuItemEx) Uncheck() *MenuItemEx {
+	mie.Item.Uncheck()
+	return mie
 }
 
-// Get ID of a menu item
-func (menuItemEx *MenuItemEx) GetId() uint32 {
-	return menuItemEx.Item.GetId()
+// GetId Get ID of a menu item
+func (mie *MenuItemEx) GetId() uint32 {
+	return mie.Item.GetId()
 }
 
-// Get title of a menu item
-func (menuItemEx *MenuItemEx) GetTitle() string {
-	return menuItemEx.Item.GetTitle()
+// GetTitle Get title of a menu item
+func (mie *MenuItemEx) GetTitle() string {
+	return mie.Item.GetTitle()
+}
+
+// GetTooltip Get tooltip of a menu item
+func (mie *MenuItemEx) GetTooltip() string {
+	return mie.Item.tooltip
+}
+
+// GetExtraData Get Extra Data of a menu item
+func (mie *MenuItemEx) GetExtraData() interface{} {
+	return mie.ExtraData
+}
+
+// SetExtraData Get Extra Data of a menu item
+func (mie *MenuItemEx) SetExtraData(extraData interface{}) {
+	mie.ExtraData = extraData
 }
 
 // Delete a menu item with children
-func (menuItemEx *MenuItemEx) Delete() {
-	menuItemEx.ClearChildren()
-	menuItemEx.Hide()
+func (mie *MenuItemEx) Delete() {
+	mie.ClearChildren()
+	mie.Hide()
 }
 
-func (menuItemEx *MenuItemEx) ClearChildren() *MenuItemEx {
-	if menuItemEx.Children.Len() > 0 {
-		lChild := menuItemEx.Children
+func (mie *MenuItemEx) ClearChildren() *MenuItemEx {
+	if mie.Children.Len() > 0 {
+		lChild := mie.Children
 		var next *list.Element
 		for e := lChild.Front(); e != nil; e = next {
 			next = e.Next()
@@ -415,8 +431,8 @@ func (menuItemEx *MenuItemEx) ClearChildren() *MenuItemEx {
 			child.Hide()
 		}
 	}
-	menuItemEx.unsetSubMenu()
-	return menuItemEx
+	mie.unsetSubMenu()
+	return mie
 }
 
 func getMenuItemEx(title string, tooltip string, f func(menuItemEx *MenuItemEx)) (menuItemEx *MenuItemEx) {
@@ -458,22 +474,22 @@ func getSubMenuItemCheckboxEx(menuItem *MenuItem, title string, tooltip string, 
 	return subMenuItemEx
 }
 
-func (menuItemEx *MenuItemEx) unsetSubMenu() *MenuItemEx {
-	item := menuItemEx.Item
+func (mie *MenuItemEx) unsetSubMenu() *MenuItemEx {
+	item := mie.Item
 	_, err := wt.convertToNormalMenu(uint32(item.id))
 	if err != nil {
 		log.Errorf("Unable to unsetSubMenu: %v", err)
-		return menuItemEx
+		return mie
 	}
-	return menuItemEx
+	return mie
 }
 
-func (menuItemEx *MenuItemEx) setSubMenu() *MenuItemEx {
-	item := menuItemEx.Item
+func (mie *MenuItemEx) setSubMenu() *MenuItemEx {
+	item := mie.Item
 	_, err := wt.convertToSubMenu(uint32(item.id))
 	if err != nil {
 		log.Errorf("Unable to setSubMenu: %v", err)
-		return menuItemEx
+		return mie
 	}
-	return menuItemEx
+	return mie
 }
