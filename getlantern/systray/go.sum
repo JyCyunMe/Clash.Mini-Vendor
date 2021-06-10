@@ -1,7 +1,7 @@
 github.com/BurntSushi/toml v0.3.1 h1:WXkYYl6Yr3qBf1K79EBnL4mak0OimBfB0XUf9Vl28OQ=
 github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03qcyfWMU=
-github.com/JyCyunMe/go-i18n v0.0.0-20210610105315-fe44fe592539 h1:7uDweJy6j3xqQ+NDfDDQge+K0HUTmWXnMEQy5PcRZ3c=
-github.com/JyCyunMe/go-i18n v0.0.0-20210610105315-fe44fe592539/go.mod h1:AYv5YGyy+INYLVZe7HNi7mSh3id2kPy4AUclCg86jXI=
+github.com/JyCyunMe/go-i18n v0.0.0-20210610112311-250fb78f3ad0 h1:Y01iL1rKcLiLx+QE9JIAJgERQaIkOh8OwLiXspGytnc=
+github.com/JyCyunMe/go-i18n v0.0.0-20210610112311-250fb78f3ad0/go.mod h1:AYv5YGyy+INYLVZe7HNi7mSh3id2kPy4AUclCg86jXI=
 github.com/davecgh/go-spew v1.1.0 h1:ZDRjVQ15GmhC3fiQ8ni8+OwkZQO4DARzQgrnXU1Liz8=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/getlantern/context v0.0.0-20190109183933-c447772a6520 h1:NRUJuo3v3WGC/g5YiyF790gut6oQr5f3FBI88Wv0dx4=
