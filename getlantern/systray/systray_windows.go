@@ -5,6 +5,7 @@ package systray
 import (
 	"crypto/md5"
 	"encoding/hex"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -13,6 +14,8 @@ import (
 	"syscall"
 	"unsafe"
 
+	"github.com/lxn/walk"
+	"github.com/lxn/win"
 	"golang.org/x/sys/windows"
 )
 
@@ -62,6 +65,7 @@ var (
 	pTranslateMessage      = u32.NewProc("TranslateMessage")
 	pUnregisterClass       = u32.NewProc("UnregisterClassW")
 	pUpdateWindow          = u32.NewProc("UpdateWindow")
+	pSendMessage           = u32.NewProc("SendMessageW")
 )
 
 // Contains window class information.
@@ -255,10 +259,13 @@ func (t *winTray) wndProc(hWnd windows.Handle, message uint32, wParam, lParam ui
 		WM_CLOSE      = 0x0010
 		WM_DESTROY    = 0x0002
 		WM_CREATE     = 0x0001
+		WM_SETFONT    = 0x0030
 	)
 	switch message {
 	case WM_CREATE:
 		systrayReady()
+	case WM_SETFONT:
+		fmt.Println("::")
 	case WM_COMMAND:
 		menuItemId := int32(wParam)
 		// https://docs.microsoft.com/en-us/windows/win32/menurc/wm-command#menus
@@ -411,13 +418,40 @@ func (t *winTray) initInstance() error {
 	}
 	t.window = windows.Handle(windowHandle)
 
-	pShowWindow.Call(
-		uintptr(t.window),
-		uintptr(SW_HIDE),
-	)
+	//font, err := NewFont("Microsoft YaHei", 8, 0)
+	//font, err := NewFont("Noto Color Emoji", 8, 0)
+	//if err != nil {
+	//	fmt.Println(fmt.Errorf("err: %v", err))
+	//}
+	//win.CreateFontIndirect(&walk.NewFont("Noto Color Emoji", 8, 0))
+
+	//hFont := uintptr(font.handleForDPI(96))
+	//SetWindowFont(win.HWND(windowHandle), font)
+
+	//win.SendMessage(win.HWND(t.window), win.WM_SETFONT, hFont, 0)
+	//pSendMessage.Call(
+	//	uintptr(windowHandle),
+	//	uintptr(win.WM_SETFONT),
+	//	uintptr(hFont),
+	//	0,
+	//)
+	//pSendMessage.Call(
+	//	uintptr(windowHandle),
+	//	uintptr(win.WM_SETFONT),
+	//	uintptr(hFont),
+	//	1,
+	//)
+
+	//win.SendMessage(win.HWND(t.window), win.WM_SETFONT, hFont, 0)
+	//win.SendMessage(win.HWND(t.window), win.WM_SETFONT, hFont, 1)
 
 	pUpdateWindow.Call(
 		uintptr(t.window),
+	)
+
+	pShowWindow.Call(
+		uintptr(t.window),
+		uintptr(SW_HIDE),
 	)
 
 	t.muNID.Lock()
@@ -431,6 +465,117 @@ func (t *winTray) initInstance() error {
 	t.nid.Size = uint32(unsafe.Sizeof(*t.nid))
 
 	return t.nid.add()
+}
+
+func SetWindowFont(hwnd win.HWND, font *Font) {
+	dpi := int(win.GetDpiForWindow(hwnd))
+	setWindowFont(hwnd, font.handleForDPI(dpi))
+}
+
+func setWindowFont(hwnd win.HWND, hFont win.HFONT) {
+	win.SendMessage(hwnd, win.WM_SETFONT, uintptr(hFont), 1)
+
+	//if window := windowFromHandle(hwnd); window != nil {
+	//	if widget, ok := window.(Widget); ok {
+	//		widget.AsWidgetBase().RequestLayout()
+	//	}
+	//}
+}
+
+var (
+	knownFonts = make(map[fontInfo]*Font)
+)
+
+type fontInfo struct {
+	family    string
+	pointSize int
+	style     walk.FontStyle
+}
+
+func NewFont(family string, pointSize int, style walk.FontStyle) (*Font, error) {
+	if style > walk.FontBold|walk.FontItalic|walk.FontUnderline|walk.FontStrikeOut {
+		return nil, fmt.Errorf("invalid style")
+	}
+
+	fi := fontInfo{
+		family:    family,
+		pointSize: pointSize,
+		style:     style,
+	}
+
+	if font, ok := knownFonts[fi]; ok {
+		return font, nil
+	}
+
+	font := &Font{
+		family:    family,
+		pointSize: pointSize,
+		style:     style,
+	}
+
+	knownFonts[fi] = font
+
+	return font, nil
+}
+
+func (f *Font) handleForDPI(dpi int) win.HFONT {
+	if f.dpi2hFont == nil {
+		f.dpi2hFont = make(map[int]win.HFONT)
+	} else if handle, ok := f.dpi2hFont[dpi]; ok {
+		return handle
+	}
+
+	hFont, err := f.createForDPI(dpi)
+	if err != nil {
+		return 0
+	}
+
+	f.dpi2hFont[dpi] = hFont
+
+	return hFont
+}
+
+type Font struct {
+	dpi2hFont map[int]win.HFONT
+	family    string
+	pointSize int
+	style     walk.FontStyle
+}
+
+func (f *Font) createForDPI(dpi int) (win.HFONT, error) {
+	var lf win.LOGFONT
+
+	lf.LfHeight = -win.MulDiv(int32(f.pointSize), int32(dpi), 72)
+	if f.style&walk.FontBold > 0 {
+		lf.LfWeight = win.FW_BOLD
+	} else {
+		lf.LfWeight = win.FW_NORMAL
+	}
+	if f.style&walk.FontItalic > 0 {
+		lf.LfItalic = 1
+	}
+	if f.style&walk.FontUnderline > 0 {
+		lf.LfUnderline = 1
+	}
+	if f.style&walk.FontStrikeOut > 0 {
+		lf.LfStrikeOut = 1
+	}
+	lf.LfCharSet = win.DEFAULT_CHARSET
+	lf.LfOutPrecision = win.OUT_TT_PRECIS
+	lf.LfClipPrecision = win.CLIP_DEFAULT_PRECIS
+	lf.LfQuality = win.CLEARTYPE_QUALITY
+	lf.LfPitchAndFamily = win.VARIABLE_PITCH | win.FF_SWISS
+
+	src := syscall.StringToUTF16(f.family)
+	dest := lf.LfFaceName[:]
+	copy(dest, src)
+
+	hFont := win.CreateFontIndirect(&lf)
+	if hFont == 0 {
+		return 0, fmt.Errorf("CreateFontIndirect failed")
+	}
+
+	return hFont, nil
 }
 
 func (t *winTray) createMenu() error {
@@ -460,6 +605,30 @@ func (t *winTray) createMenu() error {
 	if res == 0 {
 		return err
 	}
+
+	//font, err := NewFont("Microsoft YaHei", 8, 0)
+	//font, err := NewFont("Noto Color Emoji", 8, 0)
+	//if err != nil {
+	//	fmt.Println(fmt.Errorf("err: %v", err))
+	//}
+	//win.CreateFontIndirect(&walk.NewFont("Noto Color Emoji", 8, 0))
+
+	//hFont := uintptr(font.handleForDPI(96))
+	//SetWindowFont(win.HWND(windowHandle), font)
+
+	//win.SendMessage(win.HWND(t.window), win.WM_SETFONT, hFont, 0)
+	//pSendMessage.Call(
+	//	uintptr(windowHandle),
+	//	uintptr(win.WM_SETFONT),
+	//	uintptr(hFont),
+	//	0,
+	//)
+	//pSendMessage.Call(
+	//	uintptr(windowHandle),
+	//	uintptr(win.WM_SETFONT),
+	//	uintptr(hFont),
+	//	1,
+	//)
 	return nil
 }
 
@@ -495,7 +664,7 @@ func (t *winTray) convertToSubMenuEx(menuItemId uint32, enableSubMenu bool) (win
 	var mi menuItemInfo
 	if enableSubMenu {
 		mi = menuItemInfo{
-			Mask: MIIM_SUBMENU,
+			Mask:    MIIM_SUBMENU,
 			SubMenu: menu,
 		}
 		mi.Size = uint32(unsafe.Sizeof(mi))
@@ -516,8 +685,8 @@ func (t *winTray) convertToSubMenuEx(menuItemId uint32, enableSubMenu bool) (win
 		t.muMenus.Unlock()
 	} else {
 		mi = menuItemInfo{
-			Mask:     MIIM_FTYPE | MIIM_STRING | MIIM_ID | MIIM_STATE,
-			ID:       uint32(menuItemId),
+			Mask: MIIM_FTYPE | MIIM_STRING | MIIM_ID | MIIM_STATE,
+			ID:   uint32(menuItemId),
 		}
 		//t.muMenus.RLock()
 		//menu, exists := t.menus[parentId]
