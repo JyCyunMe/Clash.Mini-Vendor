@@ -3,7 +3,7 @@ module github.com/getlantern/systray
 go 1.13
 
 require (
-	github.com/JyCyunMe/go-i18n v0.0.0-20210611113521-fc5df5177b66
+	github.com/JyCyunMe/go-i18n v0.0.0-20210611132056-5d94613c3d2a
 	github.com/getlantern/golog v0.0.0-20190830074920-4ef2e798c2d7
 	github.com/lxn/walk v0.0.0-20210112085537-c389da54e794
 	github.com/lxn/win v0.0.0-20210218163916-a377121e959e

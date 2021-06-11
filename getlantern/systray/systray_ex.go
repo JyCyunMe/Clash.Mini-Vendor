@@ -2,12 +2,9 @@ package systray
 
 import (
 	"container/list"
-	"fmt"
+	"github.com/JyCyunMe/go-i18n/i18n"
 	"os"
 	"runtime"
-	"strings"
-
-	"github.com/JyCyunMe/go-i18n/i18n"
 )
 
 type MenuItemEx struct {
@@ -15,19 +12,15 @@ type MenuItemEx struct {
 	Parent     *MenuItemEx
 	Children   *list.List
 	Callback   func(menuItemEx *MenuItemEx)
-	I18nConfig *I18nConfig
+	I18nConfig *MenuItemI18nConfig
 	ExtraData  interface{}
 }
 
-type I18nConfig struct {
-	TitleID           string
-	TooltipID         string
-	TitleFormat       string
-	TooltipFormat     string
-	TitleData         *i18n.Data
-	TooltipData       *i18n.Data
+type MenuItemI18nConfig struct {
+	TitleConfig       *i18n.I18nConfig
+	TooltipConfig     *i18n.I18nConfig
 	TitleNotAsTooltip bool
-	Callback          func(i18nConfig *I18nConfig) string
+	//CallbackData        *i18n.CallbackData
 }
 
 var (
@@ -138,29 +131,14 @@ func (mie *MenuItemEx) AddSubMenuItemCheckboxExBind(title string, tooltip string
 	return
 }
 
-///
-
-//func getI18nFormatted(i18nConfig *I18nConfig) (title string, tooltip string) {
-func getI18nFormatted(i18nConfig *I18nConfig) (title string, tooltip string) {
-	//title = i18n.T(i18nConfig.TitleID)
-	title = i18n.TData("", i18nConfig.TitleID, i18nConfig.TitleData)
-	if len(i18nConfig.TitleFormat) > 0 {
-		if strings.Contains(i18nConfig.TitleFormat, "%s") {
-			title = fmt.Sprintf(i18nConfig.TitleFormat, title)
-		} else {
-			title += i18nConfig.TitleFormat
-		}
+func getI18nFormatted(i18nConfig *MenuItemI18nConfig) (title string, tooltip string) {
+	if i18nConfig.TitleConfig == nil {
+		title = ""
+	} else {
+		title = i18n.GTF(i18nConfig.TitleConfig)
 	}
-	if len(i18nConfig.TooltipID) > 0 {
-		//tooltip = i18n.T(i18nConfig.TooltipID)
-		tooltip = i18n.TData("", i18nConfig.TooltipID, i18nConfig.TooltipData)
-		if len(i18nConfig.TooltipFormat) > 0 {
-			if strings.Contains(i18nConfig.TooltipFormat, "%s") {
-				tooltip = fmt.Sprintf(i18nConfig.TooltipFormat, tooltip)
-			} else {
-				tooltip += i18nConfig.TooltipFormat
-			}
-		}
+	if i18nConfig.TooltipConfig != nil {
+		tooltip = i18n.GTF(i18nConfig.TooltipConfig)
 	} else if !i18nConfig.TitleNotAsTooltip {
 		tooltip = title
 	}
@@ -185,67 +163,67 @@ func (mie *MenuItemEx) SwitchLanguageWithChildren() {
 	}
 }
 
-func (mie *MenuItemEx) setI18nConfig(i18nConfig *I18nConfig) (menuItemEx *MenuItemEx) {
+func (mie *MenuItemEx) setI18nConfig(i18nConfig *MenuItemI18nConfig) (menuItemEx *MenuItemEx) {
 	mie.I18nConfig = i18nConfig
 	return mie
 }
 
 // AddMenuItemExI18n 添加增强版菜单项（同级）
-func (mie *MenuItemEx) AddMenuItemExI18n(i18nConfig *I18nConfig, f func(menuItem *MenuItemEx)) (menuItemEx *MenuItemEx) {
+func (mie *MenuItemEx) AddMenuItemExI18n(i18nConfig *MenuItemI18nConfig, f func(menuItem *MenuItemEx)) (menuItemEx *MenuItemEx) {
 	title, tooltip := getI18nFormatted(i18nConfig)
 	return mie.AddMenuItemEx(title, tooltip, f).setI18nConfig(i18nConfig)
 }
 
 // AddMenuItemExBindI18n 添加增强版菜单项（同级）并绑定到引用对象
-func (mie *MenuItemEx) AddMenuItemExBindI18n(i18nConfig *I18nConfig, f func(menuItem *MenuItemEx), v *MenuItemEx) (menuItemEx *MenuItemEx) {
+func (mie *MenuItemEx) AddMenuItemExBindI18n(i18nConfig *MenuItemI18nConfig, f func(menuItem *MenuItemEx), v *MenuItemEx) (menuItemEx *MenuItemEx) {
 	title, tooltip := getI18nFormatted(i18nConfig)
 	return mie.AddMenuItemExBind(title, tooltip, f, v).setI18nConfig(i18nConfig)
 }
 
 // AddMenuItemCheckboxExI18n 添加增强版勾选框菜单项（同级）
-func (mie *MenuItemEx) AddMenuItemCheckboxExI18n(i18nConfig *I18nConfig, isChecked bool, f func(menuItemEx *MenuItemEx)) (menuItemEx *MenuItemEx) {
+func (mie *MenuItemEx) AddMenuItemCheckboxExI18n(i18nConfig *MenuItemI18nConfig, isChecked bool, f func(menuItemEx *MenuItemEx)) (menuItemEx *MenuItemEx) {
 	title, tooltip := getI18nFormatted(i18nConfig)
 	return mie.AddMenuItemCheckboxEx(title, tooltip, isChecked, f).setI18nConfig(i18nConfig)
 }
 
 // AddMenuItemCheckboxExBindI18n 添加增强版菜单项并绑定到引用对象
-func (mie *MenuItemEx) AddMenuItemCheckboxExBindI18n(i18nConfig *I18nConfig, isChecked bool, f func(menuItemEx *MenuItemEx), v *MenuItemEx) (menuItemEx *MenuItemEx) {
+func (mie *MenuItemEx) AddMenuItemCheckboxExBindI18n(i18nConfig *MenuItemI18nConfig, isChecked bool, f func(menuItemEx *MenuItemEx), v *MenuItemEx) (menuItemEx *MenuItemEx) {
 	title, tooltip := getI18nFormatted(i18nConfig)
 	return mie.AddMenuItemCheckboxExBind(title, tooltip, isChecked, f, v).setI18nConfig(i18nConfig)
 }
 
 // AddMainMenuItemExI18n 添加增强版主菜单项
-func AddMainMenuItemExI18n(i18nConfig *I18nConfig, f func(menuItemEx *MenuItemEx)) (menuItemEx *MenuItemEx) {
+func AddMainMenuItemExI18n(i18nConfig *MenuItemI18nConfig, f func(menuItemEx *MenuItemEx)) (menuItemEx *MenuItemEx) {
 	title, tooltip := getI18nFormatted(i18nConfig)
 	return AddMainMenuItemEx(title, tooltip, f).setI18nConfig(i18nConfig)
 }
 
 // AddMainMenuItemExBindI18n 添加增强版主菜单项
-func AddMainMenuItemExBindI18n(i18nConfig *I18nConfig, f func(menuItemEx *MenuItemEx), v *MenuItemEx) (menuItemEx *MenuItemEx) {
+func AddMainMenuItemExBindI18n(i18nConfig *MenuItemI18nConfig, f func(menuItemEx *MenuItemEx), v *MenuItemEx) (menuItemEx *MenuItemEx) {
 	*v = *AddMainMenuItemExI18n(i18nConfig, f)
 	return v.setI18nConfig(i18nConfig)
 }
 
 // AddSubMenuItemExI18n 添加增强版子菜单项
-func (mie *MenuItemEx) AddSubMenuItemExI18n(i18nConfig *I18nConfig, f func(menuItemEx *MenuItemEx)) (menuItemEx *MenuItemEx) {
+func (mie *MenuItemEx) AddSubMenuItemExI18n(i18nConfig *MenuItemI18nConfig, f func(menuItemEx *MenuItemEx)) (menuItemEx *MenuItemEx) {
 	title, tooltip := getI18nFormatted(i18nConfig)
 	return mie.AddSubMenuItemEx(title, tooltip, f).setI18nConfig(i18nConfig)
 }
 
 // AddSubMenuItemExBindI18n 添加增强版子菜单项并绑定到引用对象
-func (mie *MenuItemEx) AddSubMenuItemExBindI18n(i18nConfig *I18nConfig, f func(menuItemEx *MenuItemEx), v *MenuItemEx) (menuItemEx *MenuItemEx) {
+func (mie *MenuItemEx) AddSubMenuItemExBindI18n(i18nConfig *MenuItemI18nConfig, f func(menuItemEx *MenuItemEx), v *MenuItemEx) (menuItemEx *MenuItemEx) {
 	title, tooltip := getI18nFormatted(i18nConfig)
 	return mie.AddSubMenuItemExBind(title, tooltip, f, v).setI18nConfig(i18nConfig)
 }
 
 // AddSubMenuItemCheckboxExI18n 添加增强版勾选框子菜单项
-func (mie *MenuItemEx) AddSubMenuItemCheckboxExI18n(i18nConfig *I18nConfig, isChecked bool, f func(menuItemEx *MenuItemEx)) (menuItemEx *MenuItemEx) {
+func (mie *MenuItemEx) AddSubMenuItemCheckboxExI18n(i18nConfig *MenuItemI18nConfig, isChecked bool, f func(menuItemEx *MenuItemEx)) (menuItemEx *MenuItemEx) {
 	title, tooltip := getI18nFormatted(i18nConfig)
 	return mie.AddSubMenuItemCheckboxEx(title, tooltip, isChecked, f).setI18nConfig(i18nConfig)
 }
 
 // AddSubMenuItemCheckboxExBindI18n 添加增强版勾选框子菜单项并绑定到引用对象
-func (mie *MenuItemEx) AddSubMenuItemCheckboxExBindI18n(i18nConfig *I18nConfig, isChecked bool, f func(menuItemEx *MenuItemEx), v *MenuItemEx) (menuItemEx *MenuItemEx) {
+func (mie *MenuItemEx) AddSubMenuItemCheckboxExBindI18n(i18nConfig *MenuItemI18nConfig, isChecked bool, f func(menuItemEx *MenuItemEx), v *MenuItemEx) (menuItemEx *MenuItemEx) {
 	title, tooltip := getI18nFormatted(i18nConfig)
 	return mie.AddSubMenuItemCheckboxExBind(title, tooltip, isChecked, f, v).setI18nConfig(i18nConfig)
 }
