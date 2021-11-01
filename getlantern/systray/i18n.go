@@ -82,8 +82,8 @@ func (mie *MenuItemEx) AddMenuItemExI18n(i18nConfig *MenuItemI18nConfig, f func(
 
 // AddMenuItemExBindI18n 添加增强版菜单项（同级）并绑定到引用对象
 func (mie *MenuItemEx) AddMenuItemExBindI18n(i18nConfig *MenuItemI18nConfig, f func(menuItem *MenuItemEx), v *MenuItemEx) (menuItemEx *MenuItemEx) {
-	title, tooltip := getI18nFormatted(i18nConfig)
-	return mie.AddMenuItemExBind(title, tooltip, f, v).setI18nConfig(i18nConfig)
+	*v = *mie.AddMenuItemExI18n(i18nConfig, f)
+	return v.setI18nConfig(i18nConfig)
 }
 
 // AddMenuItemCheckboxExI18n 添加增强版勾选框菜单项（同级）
@@ -118,8 +118,8 @@ func (mie *MenuItemEx) AddSubMenuItemExI18n(i18nConfig *MenuItemI18nConfig, f fu
 
 // AddSubMenuItemExBindI18n 添加增强版子菜单项并绑定到引用对象
 func (mie *MenuItemEx) AddSubMenuItemExBindI18n(i18nConfig *MenuItemI18nConfig, f func(menuItemEx *MenuItemEx), v *MenuItemEx) (menuItemEx *MenuItemEx) {
-	title, tooltip := getI18nFormatted(i18nConfig)
-	return mie.AddSubMenuItemExBind(title, tooltip, f, v).setI18nConfig(i18nConfig)
+	*v = *mie.AddSubMenuItemExI18n(i18nConfig, f)
+	return v.setI18nConfig(i18nConfig)
 }
 
 // AddSubMenuItemCheckboxExI18n 添加增强版勾选框子菜单项
