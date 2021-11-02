@@ -32,9 +32,31 @@ func RunEx(onReady func(), onExit func()) {
 	}()
 }
 
+// ShowMenu 弹出托盘菜单
+func ShowMenu() error {
+	return wt.showMenu()
+}
+
 // NilCallback 空回调
 func NilCallback(menuItem *MenuItemEx) {
 	//log.Infoln("clicked %s, id: %d", menuItem.Item.GetTitle(), menuItem.Item.GetId())
+}
+
+// ClickFunc 点击回调
+func ClickFunc(clickFunc func()) func() {
+	return func() {
+		go clickFunc()
+	}
+}
+
+// SetLeftClickFunc 设置左键点击回调
+func SetLeftClickFunc(leftClickFunc func()) {
+	wt.lClickFunc = leftClickFunc
+}
+
+// SetRightClickFunc 设置右键点击回调
+func SetRightClickFunc(rightClickFunc func()) {
+	wt.rClickFunc = rightClickFunc
 }
 
 // AddMenuItemEx 添加增强版菜单项（同级）

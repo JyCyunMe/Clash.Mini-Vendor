@@ -1,3 +1,4 @@
+//go:build windows
 // +build windows
 
 package systray
@@ -184,6 +185,11 @@ type winTray struct {
 	cursor,
 	window windows.Handle
 
+	lClickFunc func()
+	rClickFunc func()
+	// prevent any operation when waiting closing
+	waitingClose *struct{}
+
 	loadedImages   map[string]windows.Handle
 	muLoadedImages sync.RWMutex
 	// menus keeps track of the submenus keyed by the menu item ID, plus 0
@@ -287,9 +293,14 @@ func (t *winTray) wndProc(hWnd windows.Handle, message uint32, wParam, lParam ui
 		t.muNID.Unlock()
 		systrayExit()
 	case t.wmSystrayMessage:
+		if t.waitingClose != nil {
+			return
+		}
 		switch lParam {
-		case WM_RBUTTONUP, WM_LBUTTONUP:
-			t.showMenu()
+		case WM_LBUTTONUP:
+			t.leftClickFunc()
+		case WM_RBUTTONUP:
+			t.rightClickFunc()
 		}
 	case t.wmTaskbarCreated: // on explorer.exe restarts
 		t.muNID.Lock()
@@ -467,20 +478,26 @@ func (t *winTray) initInstance() error {
 	return t.nid.add()
 }
 
-func SetWindowFont(hwnd win.HWND, font *Font) {
-	dpi := int(win.GetDpiForWindow(hwnd))
-	setWindowFont(hwnd, font.handleForDPI(dpi))
-}
+//func SetWindowFont(font *Font) {
+//	hwnd := win.HWND(wt.window)
+//	dpi := int(win.GetDpiForWindow(hwnd))
+//	setWindowFont(hwnd, font.handleForDPI(dpi))
+//}
 
-func setWindowFont(hwnd win.HWND, hFont win.HFONT) {
-	win.SendMessage(hwnd, win.WM_SETFONT, uintptr(hFont), 1)
+//func SetWindowFont(hwnd win.HWND, font *Font) {
+//	dpi := int(win.GetDpiForWindow(hwnd))
+//	setWindowFont(hwnd, font.handleForDPI(dpi))
+//}
 
-	//if window := windowFromHandle(hwnd); window != nil {
-	//	if widget, ok := window.(Widget); ok {
-	//		widget.AsWidgetBase().RequestLayout()
-	//	}
-	//}
-}
+//func setWindowFont(hwnd win.HWND, hFont win.HFONT) {
+//	win.SendMessage(hwnd, win.WM_SETFONT, uintptr(hFont), 1)
+//
+//	//if window := windowFromHandle(hwnd); window != nil {
+//	//	if widget, ok := window.(Widget); ok {
+//	//		widget.AsWidgetBase().RequestLayout()
+//	//	}
+//	//}
+//}
 
 var (
 	knownFonts = make(map[fontInfo]*Font)
@@ -853,6 +870,22 @@ func (t *winTray) hideMenuItem(menuItemId, parentId uint32) error {
 	return nil
 }
 
+func (t *winTray) leftClickFunc() {
+	if t.lClickFunc != nil {
+		t.lClickFunc()
+	} else {
+		t.showMenu()
+	}
+}
+
+func (t *winTray) rightClickFunc() {
+	if t.rClickFunc != nil {
+		t.rClickFunc()
+	} else {
+		t.showMenu()
+	}
+}
+
 func (t *winTray) showMenu() error {
 	const (
 		TPM_BOTTOMALIGN = 0x0020
@@ -1026,6 +1059,7 @@ func nativeLoop() {
 func quit() {
 	const WM_CLOSE = 0x0010
 
+	wt.waitingClose = &(struct{}{})
 	pPostMessage.Call(
 		uintptr(wt.window),
 		WM_CLOSE,
