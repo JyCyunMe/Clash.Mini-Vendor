@@ -63,10 +63,9 @@ func (mie *MenuItemEx) SwitchLanguage() {
 // SwitchLanguageWithChildren 切换语言
 func (mie *MenuItemEx) SwitchLanguageWithChildren() {
 	mie.SwitchLanguage()
-	for e := mie.Children.Front(); e != nil; e = e.Next() {
-		child := e.Value.(*MenuItemEx)
+	mie.ForChildrenLoop(true, func(_ int, child *MenuItemEx) {
 		child.SwitchLanguageWithChildren()
-	}
+	})
 }
 
 func (mie *MenuItemEx) setI18nConfig(i18nConfig *MenuItemI18nConfig) (menuItemEx *MenuItemEx) {
