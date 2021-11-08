@@ -134,10 +134,10 @@ func AddMenuItemCheckbox(title string, tooltip string, checked bool) *MenuItem {
 	return item
 }
 
-// AddSeparator adds a separator bar to the menu
-func AddSeparator() {
-	addSeparator(atomic.AddUint32(&currentID, 1))
-}
+//// AddSeparator adds a separator bar to the menu
+//func AddSeparator() {
+//	addSeparator(atomic.AddUint32(&currentID, 1), 0)
+//}
 
 // AddSubMenuItem adds a nested sub-menu item with the designated title and tooltip.
 // It can be safely invoked from different goroutines.

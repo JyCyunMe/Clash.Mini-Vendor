@@ -3,20 +3,28 @@ package systray
 import (
 	"container/list"
 	"os"
+	"reflect"
 	"runtime"
 )
 
 type MenuItemEx struct {
-	Item       *MenuItem
-	Parent     *MenuItemEx
-	Children   *list.List
-	Callback   func(menuItemEx *MenuItemEx)
-	I18nConfig *MenuItemI18nConfig
-	ExtraData  interface{}
+	Item        *MenuItem
+	Parent      *MenuItemEx
+	Children    *list.List
+	IsSeparator bool
+	Callback    func(menuItemEx *MenuItemEx)
+	I18nConfig  *MenuItemI18nConfig
+	ExtraData   interface{}
+}
+
+type Separator struct {
+	MenuItemEx
 }
 
 var (
-	MenuList []*MenuItemEx
+	MenuList = new(list.List)
+
+	SeparatorType = reflect.TypeOf(Separator{})
 )
 
 // RunEx SystrayEx入口 须在init()调用
@@ -59,6 +67,68 @@ func SetRightClickFunc(rightClickFunc func()) {
 	wt.rClickFunc = rightClickFunc
 }
 
+// AddSeparator adds a separator bar to the menu
+func AddSeparator() *Separator {
+	separator := NewSeparator(nil)
+	MenuList.PushBack(separator)
+	addSeparator(separator.GetId(), 0)
+	return separator
+}
+
+func (mie *MenuItemEx) AddSeparator() *MenuItemEx {
+	var parent *MenuItemEx
+	var parentId uint32
+	if mie.Parent != nil {
+		parent = mie.Parent
+		parentId = parent.GetId()
+	} else {
+		parent = mie
+	}
+	separator := NewSeparator(parent)
+	separator.Item.Hide()
+	parent.Children.PushBack(separator)
+	addSeparator(separator.GetId(), parentId)
+	return mie
+}
+
+func NewSeparator(mie *MenuItemEx) *Separator {
+	subMenuItemEx := getMenuItemEx("-", "-", NilCallback)
+	subMenuItemEx.IsSeparator = true
+	subMenuItemEx.Parent = mie
+	subMenuItemEx.Hide()
+	return &Separator{*subMenuItemEx}
+}
+
+func IsSeparator(v interface{}) bool {
+	return reflect.ValueOf(v).Elem().Type() == SeparatorType
+}
+
+func OfMenuItemExOrSeparator(v interface{}) (isSeparator bool, mie *MenuItemEx) {
+	if IsSeparator(v) {
+		return true, &((v.(*Separator)).MenuItemEx)
+	}
+	return false, v.(*MenuItemEx)
+}
+
+// Delete a separator
+func (sep *Separator) Delete() {
+	sep.Hide()
+}
+
+func (mie *MenuItemEx) ForChildrenLoop(exceptSeparator bool, loopFunc func(index int, elem *MenuItemEx)) {
+	if mie.Children.Len() == 0 {
+		return
+	}
+	var index int
+	for e := mie.Children.Front(); e != nil; e = e.Next() {
+		isSeparator, child := OfMenuItemExOrSeparator(e.Value)
+		if !exceptSeparator || !isSeparator {
+			loopFunc(index, child)
+			index++
+		}
+	}
+}
+
 // AddMenuItemEx 添加增强版菜单项（同级）
 func (mie *MenuItemEx) AddMenuItemEx(title string, tooltip string, f func(menuItem *MenuItemEx)) (menuItemEx *MenuItemEx) {
 	menuItemEx = getSubMenuItemEx(mie.Parent.Item, title, tooltip, f)
@@ -96,7 +166,7 @@ func (mie *MenuItemEx) AddMenuItemCheckboxExBind(title string, tooltip string, i
 // AddMainMenuItemEx 添加增强版主菜单项
 func AddMainMenuItemEx(title string, tooltip string, f func(menuItemEx *MenuItemEx)) (menuItemEx *MenuItemEx) {
 	menuItemEx = getMenuItemEx(title, tooltip, f)
-	MenuList = append(MenuList, menuItemEx)
+	MenuList.PushBack(menuItemEx)
 	return
 }
 
@@ -145,15 +215,6 @@ func (mie *MenuItemEx) AddSubMenuItemCheckboxExBind(title string, tooltip string
 	return
 }
 
-//// AddSeparator adds a separator bar to the menu
-//func AddSeparator(mie *MenuItemEx) *MenuItemEx {
-//	menuItemEx := &MenuItemEx{
-//	}
-//	addSeparator(menuItemEx.GetId())
-//	//addSeparator(atomic.AddUint32(&currentID, 1))
-//	return menuItemEx
-//}
-
 // SwitchCheckboxGroup 切换增强版勾选框菜单项组 设置指定项勾选与否，组内其他项相反
 func SwitchCheckboxGroup(newValue *MenuItemEx, checked bool, values []*MenuItemEx) {
 	for _, value := range values {
@@ -184,7 +245,10 @@ func SwitchCheckboxGroupByList(newValue *MenuItemEx, checked bool, values *list.
 		newValue.Checked()
 	}
 	for e := values.Front(); e != nil; e = e.Next() {
-		value := e.Value.(*MenuItemEx)
+		isSeparator, value := OfMenuItemExOrSeparator(e.Value)
+		if isSeparator {
+			continue
+		}
 		if value.GetId() == newValue.GetId() {
 			if checked {
 				value.Check()
@@ -321,8 +385,11 @@ func (mie *MenuItemEx) ClearChildren() *MenuItemEx {
 		var next *list.Element
 		for e := lChild.Front(); e != nil; e = next {
 			next = e.Next()
-			child := lChild.Remove(e).(*MenuItemEx)
-			child.ClearChildren()
+			c := interface{}(lChild.Remove(e))
+			_, child := OfMenuItemExOrSeparator(c)
+			if !child.IsSeparator {
+				child.ClearChildren()
+			}
 			child.Hide()
 		}
 	}
