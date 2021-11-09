@@ -115,15 +115,20 @@ func (sep *Separator) Delete() {
 	sep.Hide()
 }
 
-func (mie *MenuItemEx) ForChildrenLoop(exceptSeparator bool, loopFunc func(index int, elem *MenuItemEx)) {
+func (mie *MenuItemEx) ForChildrenLoop(exceptSeparator bool, loopFunc func(index int, elem *MenuItemEx) (remove bool)) {
 	if mie.Children.Len() == 0 {
 		return
 	}
+	lChild := mie.Children
 	var index int
-	for e := mie.Children.Front(); e != nil; e = e.Next() {
+	var next *list.Element
+	for e := lChild.Front(); e != nil; e = next {
+		next = e.Next()
 		isSeparator, child := OfMenuItemExOrSeparator(e.Value)
 		if !exceptSeparator || !isSeparator {
-			loopFunc(index, child)
+			if loopFunc(index, child) {
+				lChild.Remove(e)
+			}
 			index++
 		}
 	}
