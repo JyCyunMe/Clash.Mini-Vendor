@@ -62,6 +62,11 @@ func SetLeftClickFunc(leftClickFunc func()) {
 	wt.lClickFunc = leftClickFunc
 }
 
+// SetLeftDoubleClickFunc 设置左键双击回调
+func SetLeftDoubleClickFunc(leftDoubleClickFunc func()) {
+	wt.lDbClickFunc = leftDoubleClickFunc
+}
+
 // SetRightClickFunc 设置右键点击回调
 func SetRightClickFunc(rightClickFunc func()) {
 	wt.rClickFunc = rightClickFunc
